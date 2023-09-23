@@ -51,6 +51,7 @@ def clientMode(mode, servername, port = 37):
             CSocket.connect((serverName, port))
             while True:
                 #The default port to get time from a server is 37, specify in program arguments using -p if a different one is wanted
+                #print("1")
                 time = CSocket.recv(1024)
                 #The timestamp is given in bytes type
                 if time == None or time == 0:
@@ -58,7 +59,7 @@ def clientMode(mode, servername, port = 37):
                     break
                 else:
                     formatDate(time)
-                t.sleep(1)
+                
         except KeyboardInterrupt:
             print("\nSIGINT: Connection closed")
         except ConnectionRefusedError:
@@ -72,7 +73,7 @@ def clientMode(mode, servername, port = 37):
             time, address = CSocket.recvfrom(1024)
             formatDate(time)
         except:
-            print("El servidor al que intenta contactar no responde, compruebe la dirección y puerto introducido")
+            print("El servidor al que intenta contactar no responde, compruebe la direccion y puerto introducido")
         CSocket.close()
         
 
@@ -86,11 +87,13 @@ def serverMode(portnum):
     SSocket.bind((ip, portnum))
     #Bind server ip address to port
     SSocket.listen(5)
+    (clientx, clientAddr) = SSocket.accept()
     while True:
         try:
             timestamp = getDate()
-            (clientx, clientAddr) = SSocket.accept()
+            print("1")
             clientx.send(getDate())
+            t.sleep(1)
         except KeyboardInterrupt:
             print("SIGINT: closing server")
             SSocket.close()
