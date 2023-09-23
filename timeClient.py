@@ -3,9 +3,23 @@
 import sys
 import socket
 from datetime import datetime
+import time as t
 
 SETENTA = 2208988800
 #Represents the time in seconds equivalent to seventy years time
+
+
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('192.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
 
 
 def formatDate(input):
@@ -15,6 +29,18 @@ def formatDate(input):
     formatdate = ahora.strftime("%a %b %d %H:%M:%S %Y")
     print(formatdate)
 
+def getDate():
+    ahora = datetime.timestamp(datetime.now())
+    #Turns actual time into timestamp
+    ahora = int(ahora) + SETENTA
+    #Converts float into int to be able to cast to bytes
+    date = ahora.to_bytes(5, "big")
+    #Converts ahora into a 5 pos long bytes array big endian
+    return date 
+
+
+#-------------------------------------------------------------------
+
 def clientMode(mode, servername, port = 37):
     if(servername == ""):
         print("Server name not specified, set using -s")
@@ -23,30 +49,52 @@ def clientMode(mode, servername, port = 37):
         try:
             CSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             CSocket.connect((serverName, port))
-            
-            #The default port to get time from a server is 37, specify in program arguments using -p if a different one is wanted
-            time = CSocket.recv(1024)
-            #The timestamp is given in bytes type
-            if time == None:
-                print("Connection not working")
-            else:
-                formatDate(time)
-            CSocket.close()
+            while True:
+                #The default port to get time from a server is 37, specify in program arguments using -p if a different one is wanted
+                time = CSocket.recv(1024)
+                #The timestamp is given in bytes type
+                if time == None or time == 0:
+                    print("Connection not working")
+                    break
+                else:
+                    formatDate(time)
+                t.sleep(1)
         except KeyboardInterrupt:
             print("\nSIGINT: Connection closed")
-    else:
-        CSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        #Create UDP socket 
-        CSocket.sendto("".encode(), (serverName, port))
-        time, address = CSocket.recvfrom(1024)
-        formatDate(time)
+        except ConnectionRefusedError:
+            print("No se ha podido conectar al servidor")
         CSocket.close()
+    else:
+        try:
+            CSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            #Create UDP socket 
+            CSocket.sendto("".encode(), (serverName, port))
+            time, address = CSocket.recvfrom(1024)
+            formatDate(time)
+        except:
+            print("El servidor al que intenta contactar no responde, compruebe la dirección y puerto introducido")
+        CSocket.close()
+        
 
 
 #--------------------------------------------------------------------
 
-def serverMode():
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def serverMode(portnum):
+    ip = get_local_ip()
+    print("Servidor establecido en " + str(ip) + ", en puerto " + str(portnum))
+    SSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    SSocket.bind((ip, portnum))
+    #Bind server ip address to port
+    SSocket.listen(5)
+    while True:
+        try:
+            timestamp = getDate()
+            (clientx, clientAddr) = SSocket.accept()
+            clientx.send(getDate())
+        except KeyboardInterrupt:
+            print("SIGINT: closing server")
+            SSocket.close()
+            sys.exit(0)
 
 
 i = 1
@@ -87,7 +135,7 @@ for arg in sys.argv[1:]:
 
 if(mode == "server"):
     #serverMode()
-    sys.exit()
+    serverMode(portn)
     
 else:
     #TCP or UDP mode
