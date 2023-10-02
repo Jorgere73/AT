@@ -66,7 +66,8 @@ def clientMode(mode, servername, port = 37):
                 else:
                     #Si el programa ha funcionado sin problema
                     formatDate(time)
-                
+        except TimeoutError:
+            print("El servidor no da respuesta")
         except KeyboardInterrupt:
             print("\nSIGINT: Connection closed")
         except ConnectionRefusedError:
