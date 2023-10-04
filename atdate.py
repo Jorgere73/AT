@@ -108,19 +108,7 @@ def handle_client_tcp(client_socket):
         print(f"Exception: {e}")
     finally:
         client_socket.close()
-
-#Recoge peticiones UDP
-def handle_client_udp(server_socket):
-    try:
-        while True:
-            data, client_address = server_socket.recvfrom(1024)
-            timestamp = getDate()
-            server_socket.sendto(timestamp, client_address)
-    except Exception as e:
-        print(f"Exception: {e}")
-    finally:
-        server_socket.close()
-
+        
 def serverMode(portnum):
     try:
         ip = get_local_ip()
