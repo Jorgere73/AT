@@ -4,6 +4,7 @@ import sys
 import socket
 from datetime import datetime
 import time as t
+import threading 
 
 SETENTA = 2208988800
 #Tiempo en segundos equivalente a setenta años
@@ -41,6 +42,31 @@ def getDate():
 
 
 #-------------------------------------------------------------------
+
+# Function to handle a client's request in TCP mode
+def handle_client_tcp(client_socket):
+    try:
+        while True:
+            timestamp = getDate()
+            client_socket.send(timestamp)
+            t.sleep(1)
+    except Exception as e:
+        print(f"Exception: {e}")
+    finally:
+        client_socket.close()
+
+# Function to handle a client's request in UDP mode
+def handle_client_udp(server_socket):
+    try:
+        while True:
+            data, client_address = server_socket.recvfrom(1024)
+            timestamp = getDate()
+            server_socket.sendto(timestamp, client_address)
+    except Exception as e:
+        print(f"Exception: {e}")
+    finally:
+        server_socket.close()
+
 
 #Funcion que procesa el sistema de hora desde parte del cliente
 def clientMode(mode, servername, port = 37):
@@ -96,32 +122,22 @@ def clientMode(mode, servername, port = 37):
 def serverMode(portnum):
     try:
         ip = get_local_ip()
-        #Conseguimos nuestra ip de host
         print("Servidor establecido en " + str(ip) + ", en puerto " + str(portnum))
         SSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        #Creamos socket TCP
         SSocket.bind((ip, portnum))
-        #Bind server ip address to port
         SSocket.listen(5)
-        #Habilita al servidor para atender a cinco clientes a la vez
-        (clientx, clientAddr) = SSocket.accept()
-        #Acepta conexiones de clientes al servidor 
+
         while True:
             try:
-                timestamp = getDate()
-                #Transforma la hora local en un timestamp
-                clientx.send(getDate())
-                #Envia el timestamp al cliente a traves de la conexion abierta
-                t.sleep(1)
-                #Espera un segundo antes de volver a enviar
+                (client_socket, client_address) = SSocket.accept()
+                client_handler = threading.Thread(target=handle_client_tcp, args=(client_socket,))
+                client_handler.start()
             except KeyboardInterrupt:
                 print("SIGINT: closing server")
-                #Cierra el servidor si se envia un SIGINT
                 SSocket.close()
                 sys.exit(0)
-    except:
+    except OSError:
         print("Puerto en uso")
-        #Si el puerto seleccionado esta en uso, salta el except
         sys.exit(1)
 
 i = 1
