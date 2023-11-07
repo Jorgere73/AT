@@ -104,14 +104,15 @@ def handle_client_tcp(client_socket):
             timestamp = getDate()
             client_socket.send(timestamp)
             t.sleep(1)
-    except Exception as e:
-        print(f"Exception: {e}")
+    except BrokenPipeError:
+        print("Un cliente se ha desconectado")
     finally:
         client_socket.close()
         
 def serverMode(portnum):
     try:
-        ip = get_local_ip()
+        #ip = get_local_ip()
+        ip = "127.0.0.1"
         print("Servidor establecido en " + str(ip) + ", en puerto " + str(portnum))
         SSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         SSocket.bind((ip, portnum))
@@ -124,8 +125,10 @@ def serverMode(portnum):
                 client_handler.start()
             except KeyboardInterrupt:
                 print("SIGINT: closing server")
-                SSocket.close()
-                sys.exit(0)
+                break
+            
+        SSocket.close()
+        sys.exit(0)
     except OSError:
         print("Puerto en uso")
         sys.exit(1)
